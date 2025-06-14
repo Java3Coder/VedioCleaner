@@ -1,5 +1,5 @@
 import os
-import ffmpeg
+from moviepy import VideoFileClip
 from typing import List, Tuple, Dict
 
 class VideoProcessor:
@@ -9,23 +9,21 @@ class VideoProcessor:
     def get_video_info(self, file_path: str) -> Dict:
         """获取视频文件的信息"""
         try:
-            probe = ffmpeg.probe(file_path)
-            video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-            
-            width = int(video_info['width'])
-            height = int(video_info['height'])
-            fps_str = video_info.get('r_frame_rate', '0/1')
-            fps = eval(fps_str) if '/' in fps_str else float(fps_str)
-            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+            # 使用 VideoFileClip 获取视频信息
+            with VideoFileClip(file_path) as video:
+                width = video.w
+                height = video.h
+                fps = video.fps
+                file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
 
-            return {
-                'width': width,
-                'height': height,
-                'fps': fps,
-                'size_mb': file_size_mb,
-                'path': file_path,
-                'filename': os.path.basename(file_path)
-            }
+                return {
+                    'width': width,
+                    'height': height,
+                    'fps': fps,
+                    'size_mb': file_size_mb,
+                    'path': file_path,
+                    'filename': os.path.basename(file_path)
+                }
         except Exception as e:
             print(f"Error processing {file_path}: {e}")
             return None
@@ -53,17 +51,17 @@ class VideoProcessor:
             # 检查分辨率
             if conditions.get('width') and conditions.get('height'):
                 matches.append(
-                    video['width'] >= conditions['width'] and 
-                    video['height'] >= conditions['height']
+                    video['width'] < conditions['width'] and 
+                    video['height'] < conditions['height']
                 )
             
             # 检查帧率
             if conditions.get('fps'):
-                matches.append(video['fps'] >= conditions['fps'])
+                matches.append(video['fps'] < conditions['fps'])
             
             # 检查文件大小
             if conditions.get('size_mb'):
-                matches.append(video['size_mb'] >= conditions['size_mb'])
+                matches.append(video['size_mb'] < conditions['size_mb'])
             
             # 根据逻辑运算符判断
             if logic == 'AND':
@@ -92,4 +90,4 @@ class VideoProcessor:
             return True
         except Exception as e:
             print(f"Error moving {file_path} to recycle bin: {e}")
-            return False 
+            return False
