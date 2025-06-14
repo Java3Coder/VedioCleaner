@@ -1,2 +1,3 @@
-PyQt6
-ffmpeg-python 
+PyQt5
+ffmpeg-python
+send2trash 
